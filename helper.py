@@ -13,8 +13,8 @@ ranker_model_name = "sentence-transformers/all-MiniLM-L6-v2"
 class KeyphraseExtractionPipeline(TokenClassificationPipeline):
     def __init__(self, model, *args, **kwargs):
         super().__init__(
-            model=AutoModelForTokenClassification.from_pretrained(model),
-            tokenizer=AutoTokenizer.from_pretrained(model),
+            model=AutoModelForTokenClassification.from_pretrained(model, cache_dir='/temp/cache/'),
+            tokenizer=AutoTokenizer.from_pretrained(model, cache_dir='/temp/cache/'),
             *args,
             **kwargs
         )
@@ -32,8 +32,9 @@ def init_pipeline() :
         device_map="cuda",
         torch_dtype=torch.float16,
         trust_remote_code=True,
+        cache_dir='/temp/cache/'
     )
-    summarizer_tokenizer = AutoTokenizer.from_pretrained(summarizer_model_name)
+    summarizer_tokenizer = AutoTokenizer.from_pretrained(summarizer_model_name, cache_dir='/temp/cache/')
     
     feature_extractor_model = KeyphraseExtractionPipeline(model=feature_extractor_model_name)
     

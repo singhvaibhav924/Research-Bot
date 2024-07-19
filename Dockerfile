@@ -5,7 +5,15 @@ WORKDIR /code
 COPY ./requirements.txt /code/requirements.txt
 
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+RUN apt update && apt install -y ffmpeg
 
-COPY . .
+RUN useradd -m -u 1000 user
+USER user
+ENV HOME=/home/user \
+	PATH=/home/user/.local/bin:$PATH
 
-CMD ["uvicorn", "-b", "0.0.0.0:7860", "app:app"]
+WORKDIR $HOME/app
+
+COPY --chown=user . $HOME/app
+
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
