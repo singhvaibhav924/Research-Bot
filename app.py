@@ -3,15 +3,18 @@ import helper
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import List
+import os
 from dotenv import load_dotenv
 
 load_dotenv()
+
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["*"],
     allow_headers=["*"]
 )
 
@@ -21,13 +24,16 @@ sentence_plan = "1. Introduction sentence\n2. Overview of relevant studies\n3. D
 
 class RequestData(BaseModel):
     abstract: str
+    words: str
+    papers: str
 
 class ResponseData(BaseModel):
     summary: str
+    ids: List[str]
 
 @app.post("/generateLiteratureSurvey/", response_model=ResponseData)
 async def generate_literature_survey(request_data: RequestData):
-    summary, ids = summarize(request_data.abstract, llms)
+    summary, ids = summarize(request_data.abstract, request_data.words, request_data.papers, llms)
     return {"summary": summary,
             "ids": ids
             }
@@ -38,11 +44,17 @@ async def root():
       return {"status": 0}
     return {"status": 1}
 
-def summarize(query, llms) :
+@app.get("/test")
+async def root():
+    if llms == None :
+      return {"status": 0}
+    return {"status": 1}
+
+def summarize(query, n_words, n_papers, llms) :
    keywords = helper.extract_keywords(llms['feature_extractor'], query)
-   papers = helper.search_papers(llms['arxiv_agent'], keywords)
-   ranked_papers = helper.re_rank_papers(llms['ranker'], query, papers)
-   literature_review, ids = helper.generate_related_work(llms['summarizer'], llms['summarizer_tokenizer'], query, ranked_papers, base_prompt, sentence_plan)
+   papers = helper.search_papers(llms['arxiv_agent'], keywords, int(n_papers)*2)
+   ranked_papers = helper.re_rank_papers(llms['ranker'], query, papers, int(n_papers))
+   literature_review, ids = helper.generate_related_work(llms['summarizer'], llms['summarizer_tokenizer'], query, ranked_papers, base_prompt, sentence_plan, int(n_words))
    return literature_review, ids
 
 print("Program running")

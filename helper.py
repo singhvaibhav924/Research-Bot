@@ -13,8 +13,8 @@ ranker_model_name = "sentence-transformers/all-MiniLM-L6-v2"
 class KeyphraseExtractionPipeline(TokenClassificationPipeline):
     def __init__(self, model, *args, **kwargs):
         super().__init__(
-            model=AutoModelForTokenClassification.from_pretrained(model, cache_dir='/temp/cache/'),
-            tokenizer=AutoTokenizer.from_pretrained(model, cache_dir='/temp/cache/'),
+            model=AutoModelForTokenClassification.from_pretrained(model),
+            tokenizer=AutoTokenizer.from_pretrained(model),
             *args,
             **kwargs
         )
@@ -29,12 +29,10 @@ class KeyphraseExtractionPipeline(TokenClassificationPipeline):
 def init_pipeline() :
     summarizer_model = AutoModelForCausalLM.from_pretrained( 
         summarizer_model_name,
-        device_map="cuda",
         torch_dtype=torch.float16,
-        trust_remote_code=True,
-        cache_dir='/temp/cache/'
+        trust_remote_code=True
     )
-    summarizer_tokenizer = AutoTokenizer.from_pretrained(summarizer_model_name, cache_dir='/temp/cache/')
+    summarizer_tokenizer = AutoTokenizer.from_pretrained(summarizer_model_name)
     
     feature_extractor_model = KeyphraseExtractionPipeline(model=feature_extractor_model_name)
     
@@ -55,20 +53,20 @@ def extract_keywords(model, abstract):
     return keyphrases
 
 
-def search_papers(arxiv_agent, keywords):
+def search_papers(arxiv_agent, keywords, n_papers):
     query = " ".join(keywords)
     results = arxiv_agent.get_summaries_as_docs(query)
     #print("arxiv ouptut ")
     #print(results)
     return results
 
-def re_rank_papers(model, query_abstract, papers):
+def re_rank_papers(model, query_abstract, papers, n_papers):
     summaries = {paper.page_content : {"Title":paper.metadata['Title']} for paper in papers}
     print(summaries)
     target_embeddings = model.encode([query_abstract])
     summaries_embeddings = model.encode(list(summaries.keys()))
 
-    cosine_similarities = -torch.nn.functional.cosine_similarity(target_embeddings, summaries_embeddings)
+    cosine_similarities = -torch.nn.functional.cosine_similarity(torch.from_numpy(target_embeddings), torch.from_numpy(summaries_embeddings))
     cosine_similarities = cosine_similarities.tolist()
 
     i = 0
@@ -123,7 +121,7 @@ def generate_refs(papers) :
         i+=1
     return refs, ids
 
-def generate_related_work(model, tokenizer, query_abstract, ranked_papers, base_prompt, sentence_plan):
+def generate_related_work(model, tokenizer, query_abstract, ranked_papers, base_prompt, sentence_plan, n_words):
     input_text = f"Abstract: {query_abstract}\n"
     i = 1
     for key in ranked_papers.keys():
@@ -143,7 +141,7 @@ def generate_related_work(model, tokenizer, query_abstract, ranked_papers, base_
     )
 
     generation_args = { 
-    "max_new_tokens": 1600, 
+    "max_new_tokens": n_words, 
     "return_full_text": False, 
     "temperature": 0.0, 
     "do_sample": False, 
