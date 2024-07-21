@@ -24,8 +24,8 @@ sentence_plan = "1. Introduction sentence\n2. Overview of relevant studies\n3. D
 
 class RequestData(BaseModel):
     abstract: str
-    words: str
-    papers: str
+    words: int
+    papers: int
 
 class ResponseData(BaseModel):
     summary: str
@@ -52,9 +52,9 @@ async def root():
 
 def summarize(query, n_words, n_papers, llms) :
    keywords = helper.extract_keywords(llms['feature_extractor'], query)
-   papers = helper.search_papers(llms['arxiv_agent'], keywords, int(n_papers)*2)
-   ranked_papers = helper.re_rank_papers(llms['ranker'], query, papers, int(n_papers))
-   literature_review, ids = helper.generate_related_work(llms['summarizer'], llms['summarizer_tokenizer'], query, ranked_papers, base_prompt, sentence_plan, int(n_words))
+   papers = helper.search_papers(llms['arxiv_agent'], keywords, n_papers*2)
+   ranked_papers = helper.re_rank_papers(llms['ranker'], query, papers, n_papers)
+   literature_review, ids = helper.generate_related_work(llms['summarizer'], llms['summarizer_tokenizer'], query, ranked_papers, base_prompt, sentence_plan, n_words)
    return literature_review, ids
 
 print("Program running")
