@@ -1,0 +1,104 @@
+You will be provided with an abstract of a scientific document and other references papers in triple quotes. Your task is to write the related work section of the document using only the provided abstracts and other references papers. Please write the related work section creating a cohesive storyline by doing a critical analysis of prior work comparing the strengths and weaknesses while also motivating the proposed approach. You are also provided a sentence plan mentioning the total number of lines and the citations to refer in different lines. You should cite all the other related documents as [#] whenever you are referring it in the related work. Do not cite abstract. Do not include any extra notes or newline characters at the end. Do not copy the abstracts of reference papers directly but compare and contrast to the main work concisely. Do not provide the output in bullet points. Do not provide references at the end. Please cite all the provided reference papers. Please follow the plan when generating sentences, especially the number of lines to generate.
+```Abstract: We explore the possibility of using exponents for Image Augmentation in Convolutional Neural Networks (CNN). Furthermore we also explore the extent of controlled non-linearity we can introduce in the Neural Networks using this augmentation technique. 
+ [1]: Data augmentation (DA) is fundamental against overfitting in large
+convolutional neural networks, especially with a limited training dataset. In
+images, DA is usually based on heuristic transformations, like geometric or
+color transformations. Instead of using predefined transformations, our work
+learns data augmentation directly from the training data by learning to
+transform images with an encoder-decoder architecture combined with a spatial
+transformer network. The transformed images still belong to the same class but
+are new, more complex samples for the classifier. Our experiments show that our
+approach is better than previous generative data augmentation methods, and
+comparable to predefined transformation methods when training an image
+classifier.
+[2]: Image augmentation techniques apply transformation functions such as
+rotation, shearing, or color distortion on an input image. These augmentations
+were proven useful in improving neural networks' generalization ability. In
+this paper, we present a novel augmentation operation, InAugment, that exploits
+image internal statistics. The key idea is to copy patches from the image
+itself, apply augmentation operations on them, and paste them back at random
+positions on the same image. This method is simple and easy to implement and
+can be incorporated with existing augmentation techniques. We test InAugment on
+two popular datasets -- CIFAR and ImageNet. We show improvement over
+state-of-the-art augmentation techniques. Incorporating InAugment with Auto
+Augment yields a significant improvement over other augmentation techniques
+(e.g., +1% improvement over multiple architectures trained on the CIFAR
+dataset). We also demonstrate an increase for ResNet50 and EfficientNet-B3
+top-1's accuracy on the ImageNet dataset compared to prior augmentation
+methods. Finally, our experiments suggest that training convolutional neural
+network using InAugment not only improves the model's accuracy and confidence
+but its performance on out-of-distribution images.
+[3]: Data augmentation is a popular technique largely used to enhance the training
+of convolutional neural networks. Although many of its benefits are well known
+by deep learning researchers and practitioners, its implicit regularization
+effects, as compared to popular explicit regularization techniques, such as
+weight decay and dropout, remain largely unstudied. As a matter of fact,
+convolutional neural networks for image object classification are typically
+trained with both data augmentation and explicit regularization, assuming the
+benefits of all techniques are complementary. In this paper, we systematically
+analyze these techniques through ablation studies of different network
+architectures trained with different amounts of training data. Our results
+unveil a largely ignored advantage of data augmentation: networks trained with
+just data augmentation more easily adapt to different architectures and amount
+of training data, as opposed to weight decay and dropout, which require
+specific fine-tuning of their hyperparameters.
+[4]: Data augmentation is a commonly used technique for increasing both the size
+and the diversity of labeled training sets by leveraging input transformations
+that preserve output labels. In computer vision domain, image augmentations
+have become a common implicit regularization technique to combat overfitting in
+deep convolutional neural networks and are ubiquitously used to improve
+performance. While most deep learning frameworks implement basic image
+transformations, the list is typically limited to some variations and
+combinations of flipping, rotating, scaling, and cropping. Moreover, the image
+processing speed varies in existing tools for image augmentation. We present
+Albumentations, a fast and flexible library for image augmentations with many
+various image transform operations available, that is also an easy-to-use
+wrapper around other augmentation libraries. We provide examples of image
+augmentations for different computer vision tasks and show that Albumentations
+is faster than other commonly used image augmentation tools on the most of
+commonly used image transformations. The source code for Albumentations is made
+publicly available online at https://github.com/albu/albumentations
+ 
+ Plan: 1. Introduction sentence
+2. Overview of relevant studies
+3. Detailed discussion on key papers
+4. Summary of related work
+```
+
+Abstract: We explore the possibility of using exponents for Image Augmentation in Convolutional Neural Networks (CNN). Furthermore we also explore the extent of controlled non-linearity we can introduce in the Neural Networks using this augmentation technique.
+
+[1]: Data augmentation (DA) is fundamental against overfitting in large
+convolutional neural networks, especially with a limited training dataset. In
+images, DA is usually based on heuristic transformations, like geometric or
+color transformations. Instead of using predefined transformations, our work
+learns data augmentation directly from the training data by learning to
+transform images with an encoder-decoder architecture combined with a spatial
+transformer network. The transformed images still belong to the same class but
+are new, more complex samples for the classifier. Our experiments show that our
+approach is better than previous generative data augmentation methods, and
+comparable to predefined transformation methods when training an image
+classifier.
+
+[2]: Image augmentation techniques apply transformation functions such as
+rotation, shearing, or color distortion on an input image. These augmentations
+were proven useful in improving neural networks' generalization ability. In
+this paper, we present a novel augmentation operation, InAugment, that exploits
+image internal statistics. The key idea is to copy patches from the image
+itself, apply augmentation operations on them, and paste them back at random
+positions on the same image. This method is simple and easy to implement and
+can be incorporated with existing augmentation techniques. We test InAugment on
+two popular datasets -- CIFAR and ImageNet. We show improvement over
+state-of-the-art augmentation techniques. Incorporating InAugment with Auto
+Augment yields a significant improvement over other augmentation techniques
+(e.g., +1% improvement over multiple architectures trained on the CIFAR
+dataset). We also demonstrate an increase for ResNet50 and EfficientNet-B3
+top-1's accuracy on the ImageNet dataset compared to prior augmentation
+methods. Finally, our experiments suggest that training convolutional neural
+network using InAugment not only improves the model's accuracy and confidence
+but its performance on out-of-distribution images
+
+References:
+[1] Mounsaveng S, Vazquez D, Ayed IB, Pedersoli M. Adversarial Learning of General Transformations for Data Augmentation. arXiv. 2019. arXiv:1909.09801v1
+[2] Arar M, Shamir A, Bermano A. InAugment: Improving Classifiers via Internal Augmentation. arXiv. 2021. arXiv:2104.03843v1
+[3] Hernández-García A, König P. Further advantages of data augmentation on convolutional neural networks. arXiv. 2019. arXiv:1906.11052v1
+[4] Buslaev A, Parinov A, Khvedchenya E, Iglovikov VI, Kalinin AA. Albumentations: fast and flexible image augmentations. arXiv. 2018. arXiv:1809.06839v1

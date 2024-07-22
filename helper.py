@@ -1,79 +1,60 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer, TokenClassificationPipeline, AutoModelForTokenClassification, pipeline
-from langchain_community.utilities import ArxivAPIWrapper
-from transformers.pipelines import AggregationStrategy
-from sentence_transformers import SentenceTransformer
-import arxiv
+import requests
 import numpy as np
-import torch
+import arxiv
+from langchain.utilities import ArxivAPIWrapper
+import os
+from dotenv import load_dotenv
+
+load_dotenv() 
+
+HF_API_TOKEN = os.environ.get('HF_API_TOKEN')
+HEADERS = {"Authorization": f"Bearer {HF_API_TOKEN}"}
 
 summarizer_model_name = "microsoft/Phi-3-mini-4k-instruct"
 feature_extractor_model_name = "ml6team/keyphrase-extraction-kbir-inspec"
 ranker_model_name = "sentence-transformers/all-MiniLM-L6-v2"
 
-class KeyphraseExtractionPipeline(TokenClassificationPipeline):
-    def __init__(self, model, *args, **kwargs):
-        super().__init__(
-            model=AutoModelForTokenClassification.from_pretrained(model),
-            tokenizer=AutoTokenizer.from_pretrained(model),
-            *args,
-            **kwargs
-        )
+def hf_api_call(model_name, payload):
+    API_URL = f"https://api-inference.huggingface.co/models/{model_name}"
+    response = requests.post(API_URL, headers=HEADERS, json=payload)
+    return response.json()
 
-    def postprocess(self, all_outputs):
-        results = super().postprocess(
-            all_outputs=all_outputs,
-            aggregation_strategy=AggregationStrategy.SIMPLE,
-        )
-        return np.unique([result.get("word").strip() for result in results])
-
-def init_pipeline() :
-    summarizer_model = AutoModelForCausalLM.from_pretrained( 
-        summarizer_model_name,
-        torch_dtype=torch.float16,
-        trust_remote_code=True
-    )
-    summarizer_tokenizer = AutoTokenizer.from_pretrained(summarizer_model_name)
-    
-    feature_extractor_model = KeyphraseExtractionPipeline(model=feature_extractor_model_name)
-    
-    ranker_model=SentenceTransformer(ranker_model_name)
-    
-    arxiv_agent = ArxivAPIWrapper(top_k_results = 5, doc_content_chars_max = None, load_max_docs = 10)
-    return {
-        "summarizer" : summarizer_model,
-        "summarizer_tokenizer" : summarizer_tokenizer,
-        "feature_extractor" : feature_extractor_model,
-        "ranker" : ranker_model,
-        "arxiv_agent" : arxiv_agent
-    }
-
-def extract_keywords(model, abstract):
-    keyphrases = model(abstract)
+def extract_keywords(abstract):
+    payload = {"inputs": abstract}
+    result = hf_api_call(feature_extractor_model_name, payload)
+    keyphrases = np.unique([item['word'].strip() for item in result])
     print(keyphrases)
     return keyphrases
 
-
-def search_papers(arxiv_agent, keywords, n_papers):
+def search_papers(keywords, n_papers):
+    arxiv_agent = ArxivAPIWrapper(top_k_results=n_papers, doc_content_chars_max=None, load_max_docs=n_papers+3)
     query = " ".join(keywords)
     results = arxiv_agent.get_summaries_as_docs(query)
-    #print("arxiv ouptut ")
-    #print(results)
     return results
 
-def re_rank_papers(model, query_abstract, papers, n_papers):
-    summaries = {paper.page_content : {"Title":paper.metadata['Title']} for paper in papers}
-    print(summaries)
-    target_embeddings = model.encode([query_abstract])
-    summaries_embeddings = model.encode(list(summaries.keys()))
+def re_rank_papers(query_abstract, papers, n_papers):
+    summaries = {paper.page_content: {"Title": paper.metadata['Title']} for paper in papers}
+    summ_list = []
 
-    cosine_similarities = -torch.nn.functional.cosine_similarity(torch.from_numpy(target_embeddings), torch.from_numpy(summaries_embeddings))
-    cosine_similarities = cosine_similarities.tolist()
+    payload = {
+        "inputs": {
+            "source_sentence": query_abstract,
+            "sentences": list(summaries.keys())
+        }
+    }
+    result = hf_api_call(ranker_model_name, payload)
 
-    i = 0
-    for key in summaries.keys() :
-        summaries[key]["score"] = cosine_similarities[i]
-        i+=1
-    return dict(sorted(summaries.items(), key=lambda x: x[1]["score"], reverse=True))
+    for i, key in enumerate(summaries.keys()):
+        summ_list.append((key, summaries[key]["Title"], result[i]))
+        print((key, summaries[key]["Title"], result[i]))
+    summ_list = sorted(summ_list, key=lambda x: x[2], reverse=True)
+    summaries = {}
+    for i in range(n_papers) :
+        summaries[summ_list[i][0]] = {
+            "Title" : summ_list[i][1],
+            "score" : summ_list[i][2]
+        }
+    return summaries
 
 def format_abstracts_as_references(papers):
     cite_text = ""
@@ -121,38 +102,27 @@ def generate_refs(papers) :
         i+=1
     return refs, ids
 
-def generate_related_work(model, tokenizer, query_abstract, ranked_papers, base_prompt, sentence_plan, n_words):
-    input_text = f"Abstract: {query_abstract}\n"
-    i = 1
-    for key in ranked_papers.keys():
-        input_text += f"{i+1}. {ranked_papers[key]['Title']} - {key}\n"
-        i+=1
-    
+
+def generate_related_work(query_abstract, ranked_papers, base_prompt, sentence_plan, n_words):
     data = f"Abstract: {query_abstract} \n {format_abstracts_as_references(ranked_papers)} \n Plan: {sentence_plan}"
     complete_prompt = f"{base_prompt}\n```{data}```"
-    messages = [ 
-    {"role": "system", "content": "You are a helpful AI assistant."}, 
-    {"role": "user", "content": complete_prompt}]
     
-    pipe = pipeline( 
-    "text-generation", 
-    model=model, 
-    tokenizer=tokenizer, 
-    )
-
-    generation_args = { 
-    "max_new_tokens": n_words, 
-    "return_full_text": False, 
-    "temperature": 0.0, 
-    "do_sample": False, 
-    } 
-
-    output = pipe(messages, **generation_args) 
-    print(output)
-    related_work = output[0]['generated_text']
+    payload = {
+        "inputs": complete_prompt,
+        "parameters": {
+            "max_new_tokens": n_words,
+            "temperature": 0.01,
+            "do_sample": False
+        }
+    }
+    
+    result = hf_api_call(summarizer_model_name, payload)
+    print(result)
+    related_work = result[0]['generated_text']
     refs, ids = generate_refs(ranked_papers)
     related_work += refs
-    f = open("literature review.txt", "w")
-    f.write(related_work)
-    f.close()
+    
+    with open("literature review.txt", "w") as f:
+        f.write(related_work)
+    
     return related_work, ids
