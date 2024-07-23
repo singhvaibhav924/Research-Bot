@@ -112,6 +112,7 @@ def generate_related_work(query_abstract, ranked_papers, base_prompt, sentence_p
         "parameters": {
             "max_new_tokens": n_words,
             "temperature": 0.01,
+            "return_full_text": False,
             "do_sample": False
         }
     }
